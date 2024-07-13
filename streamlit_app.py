@@ -28,7 +28,7 @@ def preprocess_text(text):
     return ' '.join(tokens)
 
 # Load dataset function
-@st.cache_data
+@st.cache
 def load_data():
     df = pd.read_csv('IMDB Dataset 2.csv')
     df['review'] = df['review'].apply(preprocess_text)
@@ -36,7 +36,7 @@ def load_data():
     return df
 
 # Train models function
-@st.cache_resource
+@st.cache(allow_output_mutation=True)
 def train_models(df):
     X_train, X_test, y_train, y_test = train_test_split(df['review'], df['sentiment'], test_size=0.2, random_state=42)
     vectorizer = TfidfVectorizer(max_features=5000)
