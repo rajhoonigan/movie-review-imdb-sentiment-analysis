@@ -11,8 +11,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
-from distutils.core import setup
-
 
 # Download NLTK data
 nltk.download('stopwords')
@@ -60,7 +58,7 @@ def train_models(df):
 # Function to display confusion matrix
 def plot_confusion_matrix(y_test, predictions, title):
     cm = confusion_matrix(y_test, predictions)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(5, 3))  # Adjusted figure size for confusion matrix
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', cbar=False, ax=ax)
     ax.set_xlabel('Predicted')
     ax.set_ylabel('Actual')
@@ -103,7 +101,7 @@ def main():
         'Model': ['Naive Bayes', 'Logistic Regression'],
         'Accuracy': [nb_accuracy, lr_accuracy]
     })
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(4, 2))  # Reduced figure size to 50%
     sns.barplot(x='Model', y='Accuracy', data=model_accuracies, ax=ax)
     ax.set_ylim(0, 1)
     st.pyplot(fig)
