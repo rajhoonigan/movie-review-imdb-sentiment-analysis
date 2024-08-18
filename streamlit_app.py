@@ -101,9 +101,13 @@ def main():
         'Model': ['Naive Bayes', 'Logistic Regression'],
         'Accuracy': [nb_accuracy, lr_accuracy]
     })
-    fig, ax = plt.subplots(figsize=(4, 2))  # Reduced figure size to 50%
+    fig, ax = plt.subplots(figsize=(3, 1.5))  # Further reduce the figure size
     sns.barplot(x='Model', y='Accuracy', data=model_accuracies, ax=ax)
     ax.set_ylim(0, 1)
+
+    # Adjust the padding around the graph
+    plt.tight_layout(pad=0.5)
+
     st.pyplot(fig)
 
     # Layout: User Input
