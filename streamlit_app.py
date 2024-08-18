@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import re
 import nltk
+import matplotlib.pyplot as plt
+import seaborn as sns
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer, WordNetLemmatizer
 from sklearn.model_selection import train_test_split
@@ -9,10 +11,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-import matplotlib.pyplot as plt
-import seaborn as sns
-from distutils.core import setup
-
 
 # Download NLTK data
 nltk.download('stopwords')
@@ -40,7 +38,7 @@ def load_data():
     return df
 
 # Train models function
-@st.cache_data
+@st.cache_resource
 def train_models(df):
     X_train, X_test, y_train, y_test = train_test_split(df['review'], df['sentiment'], test_size=0.2, random_state=42)
     vectorizer = TfidfVectorizer(max_features=5000)
@@ -60,55 +58,45 @@ def train_models(df):
 # Function to display confusion matrix
 def plot_confusion_matrix(y_test, predictions, title):
     cm = confusion_matrix(y_test, predictions)
-    fig, ax = plt.subplots()
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', cbar=False, ax=ax)
-    ax.set_xlabel('Predicted')
-    ax.set_ylabel('Actual')
-    ax.set_title(title)
-    st.pyplot(fig)
+    plt.figure(figsize=(6, 4))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=['Negative', 'Positive'], yticklabels=['Negative', 'Positive'])
+    plt.title(f'Confusion Matrix - {title}')
+    plt.ylabel('Actual')
+    plt.xlabel('Predicted')
+    st.pyplot(plt)
 
-# Main function to create the Streamlit dashboard
+# Function to display classification report
+def display_classification_report(y_test, predictions, model_name):
+    report = classification_report(y_test, predictions, output_dict=True)
+    report_df = pd.DataFrame(report).transpose()
+    st.write(f"### {model_name} Classification Report")
+    st.dataframe(report_df)
+
+# Main function to create the Streamlit app
 def main():
-    st.set_page_config(page_title="IMDB Movie Reviews Dashboard", layout="wide")
-
-    st.sidebar.title("IMDB Sentiment Analysis")
-    st.sidebar.write("This dashboard allows you to analyze sentiment in IMDB movie reviews using different models.")
+    st.title("IMDB Movie Reviews Sentiment Analysis Dashboard")
+    st.write("This application performs sentiment analysis on IMDB movie reviews and provides insights through visualizations.")
 
     df = load_data()
     vectorizer, nb_model, lr_model, X_test_vec, y_test, nb_predictions, lr_predictions = train_models(df)
 
-    st.title("IMDB Movie Reviews Sentiment Analysis Dashboard")
-
-    # Layout: Model Performance
     st.subheader("Model Performance Overview")
+
+    # Display model performance metrics
     col1, col2 = st.columns(2)
 
     with col1:
         st.write("### Naive Bayes Model")
-        nb_accuracy = accuracy_score(y_test, nb_predictions)
-        st.write(f"**Accuracy:** {nb_accuracy:.2f}")
-        st.write(classification_report(y_test, nb_predictions))
-        plot_confusion_matrix(y_test, nb_predictions, "Naive Bayes Confusion Matrix")
+        st.write(f"Accuracy: {accuracy_score(y_test, nb_predictions):.2f}")
+        plot_confusion_matrix(y_test, nb_predictions, "Naive Bayes")
+        display_classification_report(y_test, nb_predictions, "Naive Bayes")
 
     with col2:
         st.write("### Logistic Regression Model")
-        lr_accuracy = accuracy_score(y_test, lr_predictions)
-        st.write(f"**Accuracy:** {lr_accuracy:.2f}")
-        st.write(classification_report(y_test, lr_predictions))
-        plot_confusion_matrix(y_test, lr_predictions, "Logistic Regression Confusion Matrix")
+        st.write(f"Accuracy: {accuracy_score(y_test, lr_predictions):.2f}")
+        plot_confusion_matrix(y_test, lr_predictions, "Logistic Regression")
+        display_classification_report(y_test, lr_predictions, "Logistic Regression")
 
-    # Layout: Model Comparison
-    st.subheader("Model Accuracy Comparison")
-    model_accuracies = pd.DataFrame({
-        'Model': ['Naive Bayes', 'Logistic Regression'],
-        'Accuracy': [nb_accuracy, lr_accuracy]
-    })
-    fig, ax = plt.subplots()
-    sns.barplot(x='Model', y='Accuracy', data=model_accuracies, ax=ax)
-    ax.set_ylim(0, 1)
-    st.pyplot(fig)
-
-    # Layout: User Input
     st.subheader("Predict Sentiment of Your Own Review")
     user_input = st.text_area("Enter a movie review:")
     if st.button("Predict"):
@@ -116,15 +104,8 @@ def main():
         user_input_vectorized = vectorizer.transform([user_input_preprocessed])
         nb_prediction = nb_model.predict(user_input_vectorized)
         lr_prediction = lr_model.predict(user_input_vectorized)
-
-        col1, col2 = st.columns(2)
-        with col1:
-            st.write("### Naive Bayes Prediction")
-            st.write(f"**Prediction:** {'Positive' if nb_prediction[0] == 1 else 'Negative'}")
-
-        with col2:
-            st.write("### Logistic Regression Prediction")
-            st.write(f"**Prediction:** {'Positive' if lr_prediction[0] == 1 else 'Negative'}")
+        st.write(f"Naive Bayes Prediction: {'Positive' if nb_prediction[0] == 1 else 'Negative'}")
+        st.write(f"Logistic Regression Prediction: {'Positive' if lr_prediction[0] == 1 else 'Negative'}")
 
 if __name__ == '__main__':
     main()
