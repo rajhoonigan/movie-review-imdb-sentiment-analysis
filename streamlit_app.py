@@ -8,7 +8,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+import matplotlib.pyplot as plt
+import seaborn as sns
+from distutils.core import setup
+
 
 # Download NLTK data
 nltk.download('stopwords')
@@ -36,7 +40,7 @@ def load_data():
     return df
 
 # Train models function
-@st.cache_resource
+@st.cache_data
 def train_models(df):
     X_train, X_test, y_train, y_test = train_test_split(df['review'], df['sentiment'], test_size=0.2, random_state=42)
     vectorizer = TfidfVectorizer(max_features=5000)
@@ -53,23 +57,58 @@ def train_models(df):
 
     return vectorizer, nb_model, lr_model, X_test_vec, y_test, nb_predictions, lr_predictions
 
-# Main function to create the Streamlit app
+# Function to display confusion matrix
+def plot_confusion_matrix(y_test, predictions, title):
+    cm = confusion_matrix(y_test, predictions)
+    fig, ax = plt.subplots()
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', cbar=False, ax=ax)
+    ax.set_xlabel('Predicted')
+    ax.set_ylabel('Actual')
+    ax.set_title(title)
+    st.pyplot(fig)
+
+# Main function to create the Streamlit dashboard
 def main():
-    st.title("IMDB Movie Reviews Sentiment Analysis")
-    st.write("This application performs sentiment analysis on IMDB movie reviews.")
+    st.set_page_config(page_title="IMDB Movie Reviews Dashboard", layout="wide")
+
+    st.sidebar.title("IMDB Sentiment Analysis")
+    st.sidebar.write("This dashboard allows you to analyze sentiment in IMDB movie reviews using different models.")
 
     df = load_data()
     vectorizer, nb_model, lr_model, X_test_vec, y_test, nb_predictions, lr_predictions = train_models(df)
 
-    st.subheader("Model Performance")
-    st.write("### Naive Bayes Model")
-    st.write(f"Accuracy: {accuracy_score(y_test, nb_predictions)}")
-    st.write(classification_report(y_test, nb_predictions))
+    st.title("IMDB Movie Reviews Sentiment Analysis Dashboard")
 
-    st.write("### Logistic Regression Model")
-    st.write(f"Accuracy: {accuracy_score(y_test, lr_predictions)}")
-    st.write(classification_report(y_test, lr_predictions))
+    # Layout: Model Performance
+    st.subheader("Model Performance Overview")
+    col1, col2 = st.columns(2)
 
+    with col1:
+        st.write("### Naive Bayes Model")
+        nb_accuracy = accuracy_score(y_test, nb_predictions)
+        st.write(f"**Accuracy:** {nb_accuracy:.2f}")
+        st.write(classification_report(y_test, nb_predictions))
+        plot_confusion_matrix(y_test, nb_predictions, "Naive Bayes Confusion Matrix")
+
+    with col2:
+        st.write("### Logistic Regression Model")
+        lr_accuracy = accuracy_score(y_test, lr_predictions)
+        st.write(f"**Accuracy:** {lr_accuracy:.2f}")
+        st.write(classification_report(y_test, lr_predictions))
+        plot_confusion_matrix(y_test, lr_predictions, "Logistic Regression Confusion Matrix")
+
+    # Layout: Model Comparison
+    st.subheader("Model Accuracy Comparison")
+    model_accuracies = pd.DataFrame({
+        'Model': ['Naive Bayes', 'Logistic Regression'],
+        'Accuracy': [nb_accuracy, lr_accuracy]
+    })
+    fig, ax = plt.subplots()
+    sns.barplot(x='Model', y='Accuracy', data=model_accuracies, ax=ax)
+    ax.set_ylim(0, 1)
+    st.pyplot(fig)
+
+    # Layout: User Input
     st.subheader("Predict Sentiment of Your Own Review")
     user_input = st.text_area("Enter a movie review:")
     if st.button("Predict"):
@@ -77,8 +116,15 @@ def main():
         user_input_vectorized = vectorizer.transform([user_input_preprocessed])
         nb_prediction = nb_model.predict(user_input_vectorized)
         lr_prediction = lr_model.predict(user_input_vectorized)
-        st.write(f"Naive Bayes Prediction: {'Positive' if nb_prediction[0] == 1 else 'Negative'}")
-        st.write(f"Logistic Regression Prediction: {'Positive' if lr_prediction[0] == 1 else 'Negative'}")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("### Naive Bayes Prediction")
+            st.write(f"**Prediction:** {'Positive' if nb_prediction[0] == 1 else 'Negative'}")
+
+        with col2:
+            st.write("### Logistic Regression Prediction")
+            st.write(f"**Prediction:** {'Positive' if lr_prediction[0] == 1 else 'Negative'}")
 
 if __name__ == '__main__':
     main()
