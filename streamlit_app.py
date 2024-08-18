@@ -11,9 +11,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
-import distutils.core
+from distutils.core import setup
 
-print("distutils is available!")
 
 # Download NLTK data
 nltk.download('stopwords')
